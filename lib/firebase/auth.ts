@@ -20,7 +20,9 @@ export async function signInWithGoogle(): Promise<{ user: User | null; error: st
     if (err.code === 'auth/popup-closed-by-user') {
       message = 'Cửa sổ đăng nhập đã bị đóng trước khi hoàn tất.';
     } else if (err.code === 'auth/unauthorized-domain') {
-      message = 'Tên miền chưa được cấp quyền trong Firebase Console (Authorized Domains).';
+      message = 'Tên miền chưa được cấp quyền trong Firebase Console (Authorized Domains). Thêm "localhost" và "hieunph.github.io".';
+    } else if (err.code === 'auth/operation-not-allowed') {
+      message = 'Google Sign-in chưa được BẬT (Enable) trong Firebase Console > Authentication > Sign-in method.';
     } else if (err.message) {
       message = err.message;
     }
@@ -38,6 +40,8 @@ export async function signInWithEmail(email: string, pass: string): Promise<{ us
       message = 'Email hoặc mật khẩu không chính xác.';
     } else if (err.code === 'auth/invalid-email') {
       message = 'Định dạng email không hợp lệ.';
+    } else if (err.code === 'auth/operation-not-allowed') {
+      message = 'Email/Password chưa được BẬT (Enable) trong Firebase Console > Authentication > Sign-in method.';
     } else if (err.message) {
       message = err.message;
     }
@@ -55,6 +59,8 @@ export async function signUpWithEmail(email: string, pass: string): Promise<{ us
       message = 'Email này đã được đăng ký tài khoản.';
     } else if (err.code === 'auth/weak-password') {
       message = 'Mật khẩu phải có tối thiểu 6 ký tự.';
+    } else if (err.code === 'auth/operation-not-allowed') {
+      message = 'Email/Password chưa được BẬT (Enable) trong Firebase Console > Authentication > Sign-in method.';
     } else if (err.message) {
       message = err.message;
     }

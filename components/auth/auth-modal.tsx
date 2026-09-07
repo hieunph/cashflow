@@ -230,9 +230,33 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
         )}
         {errorMsg && (
-          <div className="my-3 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2 animate-in zoom-in-95">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="my-3 p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-medium space-y-2 animate-in zoom-in-95">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">{errorMsg}</span>
+            </div>
+            {errorMsg.includes('chưa được BẬT') && (
+              <a
+                href="https://console.firebase.google.com/project/cashflow-edb7a/authentication/providers"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/40 hover:bg-rose-500/60 text-white font-semibold text-[11px] transition-colors"
+              >
+                <span>👉 Bật Sign-in Method trên Firebase Console</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+            {errorMsg.includes('Authorized Domains') && (
+              <a
+                href="https://console.firebase.google.com/project/cashflow-edb7a/authentication/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/40 hover:bg-rose-500/60 text-white font-semibold text-[11px] transition-colors"
+              >
+                <span>👉 Cài đặt Authorized Domains (localhost, hieunph.github.io)</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
         )}
 

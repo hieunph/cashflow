@@ -6,7 +6,10 @@
     ],
     "providers": {
       "emailPassword": true,
-      "googleSignIn": {}
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "CashFlow Pilot",
+        "supportEmail": "huyhieu.nguyenphan@gmail.com"
+      }
     }
   },
   "firestore": {
