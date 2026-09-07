@@ -1,0 +1,16 @@
+{
+  "auth": {
+    "authorizedDomains": [
+      "localhost",
+      "hieunph.github.io"
+    ],
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {}
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
