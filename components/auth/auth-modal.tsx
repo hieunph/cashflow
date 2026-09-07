@@ -11,7 +11,9 @@ import {
   LogOut, 
   CheckCircle2, 
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  KeyRound,
+  ExternalLink
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { 
@@ -25,6 +27,7 @@ import {
   saveUserDataToCloud, 
   loadUserDataFromCloud 
 } from '@/lib/firebase/firestore';
+import { isApiKeyConfigured, updateApiKey, getStoredApiKey } from '@/lib/firebase/config';
 import { useCashFlowStore } from '@/store/use-cashflow-store';
 
 interface AuthModalProps {
@@ -37,6 +40,9 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [tab, setTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [hasValidKey, setHasValidKey] = useState(false);
+  const [showKeyConfig, setShowKeyConfig] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -50,6 +56,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const importDataJSON = useCashFlowStore((state) => state.importDataJSON);
 
   useEffect(() => {
+    setHasValidKey(isApiKeyConfigured());
+    const stored = getStoredApiKey();
+    if (stored && !stored.includes('DummyKey')) {
+      setApiKeyInput(stored);
+    }
+
     const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
     });
@@ -69,11 +81,26 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setTimeout(() => {
       setErrorMsg(null);
       setSuccessMsg(null);
-    }, 4000);
+    }, 4500);
+  };
+
+  const handleSaveApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKeyInput.trim() || !apiKeyInput.trim().startsWith('AIzaSy')) {
+      showToast('Web API Key của Firebase thường bắt đầu bằng "AIzaSy...". Vui lòng kiểm tra lại.', true);
+      return;
+    }
+    updateApiKey(apiKeyInput.trim());
   };
 
   // Google Sign In
   const handleGoogleSignIn = async () => {
+    if (!hasValidKey) {
+      showToast('Vui lòng nhập Web API Key (AIzaSy...) bên dưới trước khi đăng nhập.', true);
+      setShowKeyConfig(true);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     const { user, error } = await signInWithGoogle();
@@ -88,6 +115,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Email Submit
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasValidKey) {
+      showToast('Vui lòng nhập Web API Key (AIzaSy...) bên dưới trước khi đăng nhập.', true);
+      setShowKeyConfig(true);
+      return;
+    }
+
     if (!email || !password) {
       showToast('Vui lòng nhập đầy đủ email và mật khẩu.', true);
       return;
@@ -133,7 +166,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     if (success) {
       showToast('Đã sao lưu đồng bộ toàn bộ dữ liệu lên Cloud Firestore!');
     } else {
-      showToast('Không thể đồng bộ lên Cloud. Vui lòng kiểm tra kết nối.', true);
+      showToast('Không thể đồng bộ lên Cloud. Vui lòng kiểm tra quyền Firestore Rules.', true);
     }
   };
 
@@ -167,7 +200,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in">
       <div 
-        className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative"
+        className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -178,12 +211,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
             <div>
               <h3 className="text-base font-bold text-white">Firebase Cloud & Auth</h3>
-              <p className="text-xs text-slate-400">Đăng nhập & Đồng bộ Firestore an toàn</p>
+              <p className="text-xs text-slate-400">Dự án: cashflow-edb7a</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -191,15 +224,65 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         {/* Feedback Messages */}
         {successMsg && (
-          <div className="my-3 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <div className="my-3 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in zoom-in-95">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
         {errorMsg && (
-          <div className="my-3 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
+          <div className="my-3 p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2 animate-in zoom-in-95">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* API KEY CONFIGURATION BOX (Hiển thị khi chưa có API Key hoặc bấm sửa) */}
+        {(!hasValidKey || showKeyConfig) && (
+          <div className="my-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 text-amber-300 text-xs font-bold">
+                <KeyRound className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Nhập Firebase Web API Key</span>
+              </div>
+              {hasValidKey && (
+                <button
+                  type="button"
+                  onClick={() => setShowKeyConfig(false)}
+                  className="text-[10px] text-slate-400 hover:text-slate-200"
+                >
+                  Đóng
+                </button>
+              )}
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              Để kích hoạt đăng nhập, bạn chỉ cần copy dòng <strong>Web API Key</strong> (bắt đầu bằng <code className="text-amber-300 font-mono">AIzaSy...</code>) trong Firebase Console và dán vào đây:
+            </p>
+
+            <a
+              href="https://console.firebase.google.com/project/cashflow-edb7a/settings/general"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-400 hover:text-blue-300 underline"
+            >
+              Mở Firebase Console Project Settings <ExternalLink className="w-3 h-3" />
+            </a>
+
+            <form onSubmit={handleSaveApiKey} className="flex gap-2">
+              <input
+                type="text"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="AIzaSy..."
+                className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+              />
+              <button
+                type="submit"
+                className="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Lưu Key
+              </button>
+            </form>
           </div>
         )}
 
@@ -250,13 +333,22 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </button>
             </div>
 
-            <button
-              onClick={handleLogOut}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-rose-950/30 hover:bg-rose-900/40 text-rose-300 border border-rose-800/60 font-semibold text-xs transition-colors cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Đăng Xuất Tài Khoản</span>
-            </button>
+            <div className="flex justify-between items-center pt-2">
+              <button
+                type="button"
+                onClick={() => setShowKeyConfig(!showKeyConfig)}
+                className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1"
+              >
+                <KeyRound className="w-3 h-3" /> Đổi Web API Key
+              </button>
+              <button
+                onClick={handleLogOut}
+                className="flex items-center gap-1 py-1.5 px-3 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 text-rose-300 border border-rose-800/60 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Đăng Xuất</span>
+              </button>
+            </div>
           </div>
         ) : (
           /* USER NOT LOGGED IN */
@@ -356,6 +448,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 {loading ? 'Đang xử lý...' : tab === 'LOGIN' ? 'Đăng Nhập' : 'Tạo Tài Khoản Mới'}
               </button>
             </form>
+
+            {hasValidKey && (
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyConfig(!showKeyConfig)}
+                  className="text-[11px] text-slate-500 hover:text-slate-300 flex items-center justify-center gap-1 mx-auto"
+                >
+                  <KeyRound className="w-3 h-3" /> Cấu hình lại Web API Key
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
