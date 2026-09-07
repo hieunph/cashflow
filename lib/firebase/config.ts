@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBCkTs9in4fsPXz56yo0WIxRf-otTlLpz8",
@@ -39,9 +40,21 @@ export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
 
+export let analytics: Analytics | null = null;
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  }).catch(() => {
+    // Ignore analytics init failure in non-browser or ad-blocked envs
+  });
+}
+
 export const updateApiKey = (newKey: string) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('cashflow_firebase_api_key', newKey.trim());
     window.location.reload();
   }
 };
+
